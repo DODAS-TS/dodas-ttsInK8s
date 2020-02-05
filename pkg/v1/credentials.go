@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	iam "github.com/dodas-ts/dodas-go-client"
+	iam "github.com/dodas-ts/dodas-go-client/cmd"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -37,12 +38,12 @@ type ProxyStruct struct {
 func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error {
 	iamClient := iam.Conf{
 		AllowRefresh: iam.TokenRefreshConf{
-			ClientID:         ttsClient.IAMClient.ClientID,
-			ClientSecret:     ttsClient.IAMClient.ClientSecret,
-			IAMTokenEndpoint: ttsClient.IAMClient.Endpoint,
+			ClientID:         c.IAMClient.ClientID,
+			ClientSecret:     c.IAMClient.ClientSecret,
+			IAMTokenEndpoint: c.IAMClient.Endpoint,
 		},
 		Im: iam.ConfIM{
-			Token: ttsClient.IAMClient.Token,
+			Token: c.IAMClient.Token,
 		},
 	}
 
@@ -59,7 +60,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 			return fmt.Errorf("Failed to retrieve RefreshToken: %s", err)
 		}
 
-		tokenSecret, err = ttsClient.CreateSecret(refreshToken)
+		tokenSecret, err = c.CreateSecret(refreshToken, kubeClientset)
 		if err != nil {
 			return fmt.Errorf("Failed to create Token secret: %s", err)
 		}
@@ -84,7 +85,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 	tokenSecret.Data["AccessToken"] = []byte(accessToken)
 	tokenSecret, err = kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Update(tokenSecret)
 	if err != nil {
-		return fmt.Errorln(err)
+		return fmt.Errorf("Error updating access token: %s", err)
 	}
 
 	//log.Printf("Refreshing access token \n %s \n %s", tokenSecret.Data["RefreshToken"], tokenSecret.Data["AccessToken"])
@@ -96,7 +97,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 	// TODO: revoke previous one
 
 	request := iam.Request{
-		URL:         ttsClient.IAMClient.Credentials,
+		URL:         c.IAMClient.Credentials,
 		RequestType: "POST",
 		Headers: map[string]string{
 			"Authorization": "Bearer " + accessToken,
@@ -107,7 +108,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 
 	body, statusCode, err := iam.MakeRequest(request)
 	if err != nil {
-		return fmt.Errorln(err)
+		return fmt.Errorf("Error getting user credentials: %s", err)
 	}
 
 	if statusCode == 200 {
@@ -115,7 +116,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 
 		err = json.Unmarshal(body, &proxyEntry)
 		if err != nil {
-			fmt.Errorln(err)
+			return fmt.Errorf("Error unmarshaling json response for credentials: %s", err)
 		}
 
 		for _, entry := range proxyEntry.Credentials.Entries {
@@ -123,9 +124,9 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 			log.Println(entry.Value)
 		}
 
-		_, err = ttsClient.CreateCertSecret(proxyEntry.Credentials.Entries)
+		_, err = c.CreateCertSecret(proxyEntry.Credentials.Entries, kubeClientset)
 		if err != nil {
-			fmt.Errorln(err)
+			return fmt.Errorf("Error creating k8s cert secret: %s", err)
 		}
 
 	} else {

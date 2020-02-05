@@ -1,8 +1,9 @@
-module github.com/dodas-ts/docker-img_tts-go-cache
+module github.com/dodas-ts/dodas-ttsInK8s
 
 go 1.13
 
 require (
+	github.com/alexellis/go-execute v0.0.0-20200124154445-8697e4e28c5e
 	github.com/dodas-ts/dodas-go-client v0.0.0
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac // indirect

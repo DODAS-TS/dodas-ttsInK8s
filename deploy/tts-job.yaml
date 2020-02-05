@@ -16,9 +16,9 @@ spec:
       containers:
         - name: tts
           imagePullPolicy: Always
-          image: dodasts/tts-cache:v0.0.14-k8s
+          image: dodasts/tts-cache:v0.1.1-k8s
           args:
-            - --get-certs
+            - --cache-certs
           volumeMounts:
             - name: config
               mountPath: "/app"

@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // IAM ..
@@ -28,20 +31,20 @@ type TTSClient struct {
 func (c *TTSClient) GetConf(path string) (*TTSClient, error) {
 	f, err := ioutil.ReadFile(path)
 	if err != nil {
-		return &Config{}, err
+		return &TTSClient{}, err
 	}
 
 	log.Printf("Reading: %s", path)
 	err = yaml.UnmarshalStrict(f, &c)
 	if err != nil {
-		return &Config{}, err
+		return &TTSClient{}, err
 	}
 
 	return c, nil
 }
 
 // CreateCertSecret ..
-func (c *TTSClient) CreateCertSecret(entries []ProxyEntries) (*v1.Secret, error) {
+func (c *TTSClient) CreateCertSecret(entries []ProxyEntries, kubeClientset *kubernetes.Clientset) (*v1.Secret, error) {
 	// if secret exists remove it
 	_, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
@@ -65,9 +68,9 @@ func (c *TTSClient) CreateCertSecret(entries []ProxyEntries) (*v1.Secret, error)
 	}
 
 	for _, entry := range entries {
-		if entry.SaveAs != "" {
-			secret.Data[entry.SaveAs] = []byte(entry.Value)
-		}
+		name := strings.ReplaceAll(entry.Name, " ", "")
+		name = strings.Split(name, "(")[0]
+		secret.Data[name] = []byte(entry.Value)
 	}
 
 	certSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Create(secret)
@@ -79,7 +82,7 @@ func (c *TTSClient) CreateCertSecret(entries []ProxyEntries) (*v1.Secret, error)
 }
 
 // CreateSecret ..
-func (c *TTSClient) CreateSecret(refreshToken string) (*v1.Secret, error) {
+func (c *TTSClient) CreateSecret(refreshToken string, kubeClientset *kubernetes.Clientset) (*v1.Secret, error) {
 
 	// if secret exists remove it
 	_, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("refresh-token", metav1.GetOptions{})

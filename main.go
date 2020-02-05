@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	tts "github.com/dodas-ts/dodas-ttsInK8s/pkg/v1"
 	"k8s.io/client-go/kubernetes"
@@ -10,16 +11,18 @@ import (
 )
 
 var (
-	configPath    string
-	kubeClientset *kubernetes.Clientset
-	cacheCerts    bool
-	getProxy      bool
+	configPath      string
+	kubeClientset   *kubernetes.Clientset
+	cacheCerts      bool
+	getProxy        bool
+	periodInMinutes int
 )
 
 func init() {
-	flag.BoolVar(&cacheCerts, "cache-certs", true, "Cache user credentials in k8s")
+	flag.BoolVar(&cacheCerts, "cache-certs", false, "Cache user credentials in k8s")
 	flag.BoolVar(&getProxy, "get-proxy", false, "Get user proxy")
 	flag.StringVar(&configPath, "config", ".config.yaml", "Path to yaml config file")
+	flag.IntVar(&periodInMinutes, "period", 120, "Proxy refresh period in minutes")
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -44,7 +47,15 @@ func main() {
 
 	var ttsClient *tts.TTSClient
 
-	if cacheCerts {
+	if getProxy {
+		for {
+			err := tts.GetProxy("/root/gwms_proxy", kubeClientset)
+			if err != nil {
+				log.Printf("Error retrieving user proxy: %s", err)
+			}
+			time.Sleep(periodInMinutes * time.Minute)
+		}
+	} else if cacheCerts {
 		configFile := configPath
 
 		ttsClient, err := ttsClient.GetConf(configFile)
@@ -52,12 +63,10 @@ func main() {
 			log.Fatalf("Error reading config file: %s", err)
 		}
 
-		err = ttsClient.CacheCredentials(kubeClientset * kubernetes.Clientset)
+		err = ttsClient.CacheCredentials(kubeClientset)
 		if err != nil {
 			log.Fatalf("Error caching credentials: %s", err)
 		}
-	} else if getProxy {
-
 	}
 
 }

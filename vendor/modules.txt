@@ -1,3 +1,5 @@
+# github.com/alexellis/go-execute v0.0.0-20200124154445-8697e4e28c5e
+github.com/alexellis/go-execute/pkg/v1
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
 # github.com/cpuguy83/go-md2man v1.0.10
