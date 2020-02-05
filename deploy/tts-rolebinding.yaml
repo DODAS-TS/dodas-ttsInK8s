@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tts-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: tts-account
+roleRef:
+  kind: Role
+  name: tts-role
+  apiGroup: rbac.authorization.k8s.io

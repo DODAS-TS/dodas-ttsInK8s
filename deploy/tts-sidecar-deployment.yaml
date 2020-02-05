@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tts-pod
+  labels:
+    app.kubernetes.io/name: tts-pod
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tts-pod
+    spec:
+      serviceAccountName: tts-account
+      restartPolicy: Never
+      containers:
+        - name: tts
+          imagePullPolicy: Always
+          image: dodasts/tts-cache:v0.0.14-k8s
+          args:
+            - --get-proxy
+          resources:
+            limits:
+              memory: "500M"
+              cpu: "100m"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tts-pod

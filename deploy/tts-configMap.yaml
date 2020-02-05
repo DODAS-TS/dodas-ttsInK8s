@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ttsconfig
+data:
+  .config.yaml: |
+    iam:
+      client_secret: <refresh token client secret> 
+      client_id: <refresh token client id>
+      token: <your token>
+      endpoint: https://dodas-iam.cloud.cnaf.infn.it/token
+      credentials:  https://dodas-tts.cloud.cnaf.infn.it/api/v2/iam/credential
