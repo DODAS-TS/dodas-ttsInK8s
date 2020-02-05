@@ -92,9 +92,49 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 
 	log.Print("New access token saved.")
 
-	// retrieve credential info and get proxy
 	// TODO: if proxy is valid skip
 	// TODO: revoke previous one
+	certSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
+	if err == nil {
+		log.Print("Cert secret already exists, check if proxy still valid")
+		err = GetProxy("/tmp/test_proxy", kubeClientset)
+		if err == nil {
+			log.Print("Certificates still valid, do nothing")
+			return nil
+		}
+		log.Print("Certificates expired, revoking the old one and retrieving a new one")
+
+		id := string(certSecret.Data["id"])
+		// TODO revoke current id and go on
+		request := iam.Request{
+			URL:         c.IAMClient.Credentials + "/" + id,
+			RequestType: "DELETE",
+			Headers: map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			},
+		}
+		body, statusCode, err := iam.MakeRequest(request)
+		if err != nil {
+			return fmt.Errorf("Error deleting user credentials %s: %s", id, err)
+		}
+
+		if statusCode == 200 {
+			result := map[string]string{}
+
+			err = json.Unmarshal(body, &result)
+			if err != nil {
+				return fmt.Errorf("Error unmarshaling json response for deletion of credentials %s: %s", id, err)
+			}
+
+			if result["result"] == "ok" {
+				log.Printf("Certificates %s revoked", id)
+			} else {
+				return fmt.Errorf("Error for deletion of credentials %s: %s", id, result["result"])
+			}
+		} else {
+			return fmt.Errorf("code %d: %s", statusCode, body)
+		}
+	}
 
 	request := iam.Request{
 		URL:         c.IAMClient.Credentials,
@@ -124,7 +164,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 			log.Println(entry.Value)
 		}
 
-		_, err = c.CreateCertSecret(proxyEntry.Credentials.Entries, kubeClientset)
+		_, err = c.CreateCertSecret(proxyEntry.Credentials.ID, proxyEntry.Credentials.Entries, kubeClientset)
 		if err != nil {
 			return fmt.Errorf("Error creating k8s cert secret: %s", err)
 		}

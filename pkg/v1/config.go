@@ -44,7 +44,7 @@ func (c *TTSClient) GetConf(path string) (*TTSClient, error) {
 }
 
 // CreateCertSecret ..
-func (c *TTSClient) CreateCertSecret(entries []ProxyEntries, kubeClientset *kubernetes.Clientset) (*v1.Secret, error) {
+func (c *TTSClient) CreateCertSecret(id string, entries []ProxyEntries, kubeClientset *kubernetes.Clientset) (*v1.Secret, error) {
 	// if secret exists remove it
 	_, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
@@ -72,6 +72,8 @@ func (c *TTSClient) CreateCertSecret(entries []ProxyEntries, kubeClientset *kube
 		name = strings.Split(name, "(")[0]
 		secret.Data[name] = []byte(entry.Value)
 	}
+
+	secret.Data["id"] = []byte(id)
 
 	certSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Create(secret)
 	if err != nil {

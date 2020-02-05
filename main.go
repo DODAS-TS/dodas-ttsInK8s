@@ -49,11 +49,11 @@ func main() {
 
 	if getProxy {
 		for {
-			err := tts.GetProxy("/root/gwms_proxy", kubeClientset)
+			err := tts.GetProxy("/root/proxy/gwms_proxy", kubeClientset)
 			if err != nil {
 				log.Printf("Error retrieving user proxy: %s", err)
 			}
-			time.Sleep(periodInMinutes * time.Minute)
+			time.Sleep(time.Duration(periodInMinutes * int(time.Minute)))
 		}
 	} else if cacheCerts {
 		configFile := configPath
