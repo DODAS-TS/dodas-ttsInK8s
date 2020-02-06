@@ -12,28 +12,35 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// GetProxy ..
-func GetProxy(dest string, kubeClientset *kubernetes.Clientset) error {
+// GetDN ..
+func GetDN(proxy string) error {
+	cmd := execute.ExecTask{
+		Command: "voms-proxy-info",
+		Args: []string{
+			"--file",
+			proxy,
+			"--issuer",
+		},
+		StreamStdio: false,
+		Shell:       true,
+	}
 
-	secretCert, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
+	res, err := cmd.Execute()
 	if err != nil {
-		return fmt.Errorf("Problem checking for cert secret existance: %s", err)
+		return fmt.Errorf("voms-proxy-info command failed: %s", err)
 	}
 
-	key := "/tmp/user.key"
-	cert := "/tmp/user.cert"
-
-	passwd := secretCert.Data["Passphrase"]
-
-	if err := ioutil.WriteFile(key, secretCert.Data["PrivateKey"], os.FileMode(int(0400))); err != nil {
-		return fmt.Errorf("Failed to write certificate key: %s", err)
+	if res.ExitCode != 0 {
+		return fmt.Errorf("voms-proxy-info exited with error: %s", res.Stderr)
 	}
 
-	if err := ioutil.WriteFile(cert, secretCert.Data["Certificate"], os.FileMode(int(0600))); err != nil {
-		return fmt.Errorf("Failed to write certificate: %s", err)
-	}
+	log.Printf("UserDN: %s\n", res.Stdout)
 
-	log.Print("Generating user proxy")
+	return nil
+}
+
+// CreateProxy ..
+func CreateProxy(cert string, key string, passwd string, dest string) error {
 
 	cmd := execute.ExecTask{
 		Command: "echo",
@@ -64,6 +71,37 @@ func GetProxy(dest string, kubeClientset *kubernetes.Clientset) error {
 	}
 
 	log.Printf("stdout: %s, stderr: %s, exit-code: %d\n", res.Stdout, res.Stderr, res.ExitCode)
+
+	return nil
+}
+
+// GetProxy ..
+func GetProxy(dest string, kubeClientset *kubernetes.Clientset) error {
+
+	secretCert, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("Problem checking for cert secret existance: %s", err)
+	}
+
+	key := "/tmp/user.key"
+	cert := "/tmp/user.cert"
+
+	passwd := secretCert.Data["Passphrase"]
+
+	if err := ioutil.WriteFile(key, secretCert.Data["PrivateKey"], os.FileMode(int(0400))); err != nil {
+		return fmt.Errorf("Failed to write certificate key: %s", err)
+	}
+
+	if err := ioutil.WriteFile(cert, secretCert.Data["Certificate"], os.FileMode(int(0600))); err != nil {
+		return fmt.Errorf("Failed to write certificate: %s", err)
+	}
+
+	log.Print("Generating user proxy")
+
+	err = CreateProxy(cert, key, string(passwd), dest)
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve proxy: %s", err)
+	}
 
 	return nil
 }

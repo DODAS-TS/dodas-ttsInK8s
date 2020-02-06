@@ -15,12 +15,18 @@ var (
 	kubeClientset   *kubernetes.Clientset
 	cacheCerts      bool
 	getProxy        bool
+	mapUser         bool
+	username        string
+	token           string
 	periodInMinutes int
 )
 
 func init() {
 	flag.BoolVar(&cacheCerts, "cache-certs", false, "Cache user credentials in k8s")
 	flag.BoolVar(&getProxy, "get-proxy", false, "Get user proxy")
+	flag.BoolVar(&mapUser, "map-user", false, "Get user proxy and map the DN to a username")
+	flag.StringVar(&username, "user", "DUMMY", "Username for DN mapping")
+	flag.StringVar(&token, "token", "", "Token for DN mapping")
 	flag.StringVar(&configPath, "config", ".config.yaml", "Path to yaml config file")
 	flag.IntVar(&periodInMinutes, "period", 120, "Proxy refresh period in minutes")
 
@@ -57,7 +63,6 @@ func main() {
 		}
 	} else if cacheCerts {
 		configFile := configPath
-
 		ttsClient, err := ttsClient.GetConf(configFile)
 		if err != nil {
 			log.Fatalf("Error reading config file: %s", err)
@@ -66,6 +71,21 @@ func main() {
 		err = ttsClient.CacheCredentials(kubeClientset)
 		if err != nil {
 			log.Fatalf("Error caching credentials: %s", err)
+		}
+	} else if mapUser {
+		if token == "" || username == "" {
+			log.Fatal("Please specify --username and --token")
+		}
+
+		configFile := configPath
+		ttsClient, err := ttsClient.GetConf(configFile)
+		if err != nil {
+			log.Fatalf("Error reading config file: %s", err)
+		}
+
+		err = ttsClient.MapUser(username, token, kubeClientset)
+		if err != nil {
+			log.Fatalf("Failed to map %s with token %s: %s", username, token, err.Error())
 		}
 	}
 

@@ -16,7 +16,7 @@ export GO111MODULE=on
 # Force 64 bit architecture
 export GOARCH=amd64
 
-all: build test
+all: docker-img-build
 
 build:
 	env $(GOBUILD) -o $(BINARY_NAME)
@@ -24,40 +24,12 @@ build:
 build-debug:
 	env CGO_ENABLED=0 $(GOBUILD_DBG) -o $(BINARY_NAME) -v
 
-doc:
-	cp README.md docs/README.md
-	BUILD_DOC=true ./$(BINARY_NAME)
-
-publish-doc:
-	$(DOCBIN) gh-deploy
-
-test: build
-	$(GOTEST) -v ./...
-	./$(BINARY_NAME) validate --template tests/tosca/valid_template.yml
-	./$(BINARY_NAME) validate --template tests/tosca/broken_template_type.yaml
-	./$(BINARY_NAME) validate --template tests/tosca/broken_template_node.yaml
-
-clean: 
-	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
-
-run: build
-	./$(BINARY_NAME)
-
-install:
-	$(GOCMD) install $(REPO)
-
-tidy:
+vendor:
 	$(GOCMD) mod tidy
+	$(GOCMD) vendor
 
-docker-bin-build:
-	docker run --rm -it -v ${PWD}:/go -w /go/ golang:1.13.6 go build -mod vendor -o "$(BINARY_NAME)" -v
-
-docker-img-build:
+docker-img-build: vendor build
 	docker build . -t dodasts/tts-cache:$(VERSION)
-
-docker-img-build-base:
-	docker build . -t dodasts/tts-cache:base-k8s --target BASE
 
 windows-build:
 	env GOOS=windows CGO_ENABLED=0 $(GOBUILD) -o $(BINARY_NAME).exe -v
@@ -73,7 +45,5 @@ gensrc:
 	@echo "  BUILD_DATE = \"$(BUILD_DATE)\"" >> $(VERSIONFILE)
 	@echo ")" >> $(VERSIONFILE)
 
-build-release: tidy gensrc build doc publish-doc test windows-build macos-build
-	zip dodas.zip dodas
-	zip dodas.exe.zip dodas.exe
-	zip dodas_osx.zip dodas_osx
+build-release: vendor gensrc docker-img-build
+
