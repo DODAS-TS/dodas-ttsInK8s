@@ -72,6 +72,33 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 
 	log.Printf("stdout: %s, stderr: %s, exit-code: %d\n", res.Stdout, res.Stderr, res.ExitCode)
 
+	log.Printf("checking proxy validity.")
+
+	//voms-proxy-info --valid 5:00 -e --file /root/proxy/gwms_proxy
+	cmd = execute.ExecTask{
+		Command: "voms-proxy-info",
+		Args: []string{
+			"--valid",
+			"5:00",
+			"-e",
+			"-file",
+			dest,
+		},
+		StreamStdio: false,
+		Shell:       true,
+	}
+
+	res, err = cmd.Execute()
+	if err != nil {
+		return fmt.Errorf("grid-proxy-info command failed: %s", err)
+	}
+
+	if res.ExitCode != 0 {
+		return fmt.Errorf("grid-proxy-info exited with error: %s", res.Stderr)
+	}
+
+	log.Printf("stdout: %s, stderr: %s, exit-code: %d\n", res.Stdout, res.Stderr, res.ExitCode)
+
 	return nil
 }
 
