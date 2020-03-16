@@ -72,17 +72,19 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 
 	log.Printf("stdout: %s, stderr: %s, exit-code: %d\n", res.Stdout, res.Stderr, res.ExitCode)
 
-	log.Printf("checking proxy validity.")
+	log.Printf("checking certs validity.")
 
 	//voms-proxy-info --valid 5:00 -e --file /root/proxy/gwms_proxy
+	//openssl x509 -checkend 86400 -noout -in file.pem
 	cmd = execute.ExecTask{
-		Command: "voms-proxy-info",
+		Command: "openssl",
 		Args: []string{
-			"--valid",
-			"5:00",
-			"-e",
-			"-file",
-			dest,
+			"x509",
+			"-checkend",
+			"18000",
+			"-noout",
+			"-in",
+			cert,
 		},
 		StreamStdio: false,
 		Shell:       true,

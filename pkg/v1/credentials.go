@@ -115,7 +115,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 		}
 		body, statusCode, err := iam.MakeRequest(request)
 		if err != nil {
-			return fmt.Errorf("Error deleting user credentials %s: %s", id, err)
+			fmt.Printf("Error deleting user credentials %s: %s", id, err)
 		}
 
 		if statusCode == 200 {
@@ -123,16 +123,16 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 
 			err = json.Unmarshal(body, &result)
 			if err != nil {
-				return fmt.Errorf("Error unmarshaling json response for deletion of credentials %s: %s", id, err)
+				fmt.Printf("Error unmarshaling json response for deletion of credentials %s: %s", id, err)
 			}
 
 			if result["result"] == "ok" {
 				log.Printf("Certificates %s revoked", id)
 			} else {
-				return fmt.Errorf("Error for deletion of credentials %s: %s", id, result["result"])
+				fmt.Printf("Error for deletion of credentials %s: %s", id, result["result"])
 			}
 		} else {
-			return fmt.Errorf("code %d: %s", statusCode, body)
+			fmt.Printf("Error deleting user credentials: code %d: %s", statusCode, body)
 		}
 	}
 
