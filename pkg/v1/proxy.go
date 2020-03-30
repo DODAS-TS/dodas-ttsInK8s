@@ -47,7 +47,7 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 		Args: []string{
 			string(passwd),
 			"|",
-			"grid-proxy-init",
+			"voms-proxy-init",
 			"-valid",
 			"160:00",
 			"-key",
@@ -63,11 +63,11 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 
 	res, err := cmd.Execute()
 	if err != nil {
-		return fmt.Errorf("grid-proxy-init command failed: %s", err)
+		return fmt.Errorf("voms-proxy-init command failed: %s", err)
 	}
 
 	if res.ExitCode != 0 {
-		return fmt.Errorf("grid-proxy-init exited with error: %s", res.Stderr)
+		return fmt.Errorf("voms-proxy-init exited with error: %s", res.Stderr)
 	}
 
 	log.Printf("stdout: %s, stderr: %s, exit-code: %d\n", res.Stdout, res.Stderr, res.ExitCode)
@@ -92,11 +92,11 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 
 	res, err = cmd.Execute()
 	if err != nil {
-		return fmt.Errorf("grid-proxy-info command failed: %s", err)
+		return fmt.Errorf("openssl command failed: %s", err)
 	}
 
 	if res.ExitCode != 0 {
-		return fmt.Errorf("grid-proxy-info exited with error: %s", res.Stderr)
+		return fmt.Errorf("openssl exited with error: %s", res.Stderr)
 	}
 
 	log.Printf("stdout: %s, stderr: %s, exit-code: %d\n", res.Stdout, res.Stderr, res.ExitCode)
