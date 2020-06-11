@@ -93,11 +93,11 @@ func main() {
 			log.Fatalf("Failed to map %s with token %s: %s", username, token, err.Error())
 		}
 	} else if dumpProxy {
-		if token == "" || username == "" {
-			log.Fatal("Please specify --username and --token")
+		if token == "" {
+			log.Fatal("Please specify the access token with --token")
 		}
 
-		err := tts.DumpProxy(username, token, credentials)
+		err := tts.DumpProxy(token, credentials)
 		if err != nil {
 			log.Fatalf("Error retrieving proxy: %s", err)
 		}

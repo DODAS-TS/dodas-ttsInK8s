@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/user"
 	"strings"
 
 	iam "github.com/dodas-ts/dodas-go-client/cmd"
@@ -81,7 +82,7 @@ func (c *TTSClient) MapUser(user string, accessToken string, kubeClientset *kube
 }
 
 // DumpProxy ..
-func DumpProxy(user string, accessToken string, credentials string) error {
+func DumpProxy(accessToken string, credentials string) error {
 
 	request := iam.Request{
 		URL:         credentials,
@@ -121,9 +122,13 @@ func DumpProxy(user string, accessToken string, credentials string) error {
 		return fmt.Errorf("code %d: %s", statusCode, body)
 	}
 
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve current: %s", err)
+	}
 	key := "/tmp/user.key"
 	cert := "/tmp/user.cert"
-	dest := "/tmp/" + user + ".pem"
+	dest := "/tmp/userproxy_" + string(currentUser.Uid) + ".pem"
 
 	passwd := secrets["Passphrase"]
 
