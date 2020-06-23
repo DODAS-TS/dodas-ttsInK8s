@@ -56,6 +56,7 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 			cert,
 			"-out",
 			dest,
+			"-pwstdin",
 		},
 		StreamStdio: false,
 		Shell:       true,
