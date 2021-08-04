@@ -59,8 +59,13 @@ func main() {
 	var ttsClient *tts.TTSClient
 
 	if getProxy {
+		configFile := configPath
+		ttsClient, err := ttsClient.GetConf(configFile)
+		if err != nil {
+			log.Fatalf("Error reading config file: %s", err)
+		}
 		for {
-			err := tts.GetProxy("/root/proxy/gwms_proxy", kubeClientset)
+			err := tts.GetProxy("/root/proxy/gwms_proxy", ttsClient, kubeClientset)
 			if err != nil {
 				log.Printf("Error retrieving user proxy: %s", err)
 			}
