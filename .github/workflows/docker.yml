@@ -30,9 +30,9 @@ jobs:
     - name: Build container image
       uses: docker/build-push-action@v2
       with: 
-        context: ./stable/jhub-aas/docker/
+        context: ./
         outputs: "type=registry,push=true"
         tags: |
             ghcr.io/${{ steps.get_repo_owner.outputs.repo_owner }}/tts-cache:${{ env.RELEASE_VERSION }}
-        file: ./stable/jhub-aas/docker/Dockerfile
+        file: ./Dockerfile
         platforms: linux/amd64
