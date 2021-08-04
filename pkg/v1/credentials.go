@@ -6,7 +6,6 @@ import (
 	"log"
 
 	iam "github.com/dodas-ts/dodas-go-client/cmd"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -48,7 +47,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 	}
 
 	// if secret exists skip refresh token
-	tokenSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("refresh-token", metav1.GetOptions{})
+	tokenSecret, err := kubeClientset.CoreV1().Secrets(c.Namespace).Get("refresh-token", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Unexpected problem checking of secret existance: %s", err)
 	} else if err == nil {
@@ -83,7 +82,7 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 	log.Printf("Updating new access token in secret")
 
 	tokenSecret.Data["AccessToken"] = []byte(accessToken)
-	tokenSecret, err = kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Update(tokenSecret)
+	tokenSecret, err = kubeClientset.CoreV1().Secrets(c.Namespace).Update(tokenSecret)
 	if err != nil {
 		return fmt.Errorf("Error updating access token: %s", err)
 	}
@@ -94,10 +93,10 @@ func (c *TTSClient) CacheCredentials(kubeClientset *kubernetes.Clientset) error 
 
 	// TODO: if proxy is valid skip
 	// TODO: revoke previous one
-	certSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
+	certSecret, err := kubeClientset.CoreV1().Secrets(c.Namespace).Get("certs-secret", metav1.GetOptions{})
 	if err == nil {
 		log.Print("Cert secret already exists, check if proxy still valid")
-		err = GetProxy("/tmp/test_proxy", kubeClientset)
+		err = GetProxy("/tmp/test_proxy", c, kubeClientset)
 		if err == nil {
 			log.Print("Certificates still valid, do nothing")
 			return nil

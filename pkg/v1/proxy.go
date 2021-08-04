@@ -7,7 +7,6 @@ import (
 	"os"
 
 	execute "github.com/alexellis/go-execute/pkg/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -106,9 +105,9 @@ func CreateProxy(cert string, key string, passwd string, dest string) error {
 }
 
 // GetProxy ..
-func GetProxy(dest string, kubeClientset *kubernetes.Clientset) error {
+func GetProxy(dest string, c *TTSClient, kubeClientset *kubernetes.Clientset) error {
 
-	secretCert, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
+	secretCert, err := kubeClientset.CoreV1().Secrets(c.Namespace).Get("certs-secret", metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("Problem checking for cert secret existance: %s", err)
 	}

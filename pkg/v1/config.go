@@ -24,7 +24,8 @@ type IAM struct {
 
 // TTSClient ..
 type TTSClient struct {
-	IAMClient IAM `yaml:"iam"`
+	IAMClient IAM    `yaml:"iam"`
+	Namespace string `yaml:"namespace"`
 }
 
 // GetConf ..
@@ -46,12 +47,12 @@ func (c *TTSClient) GetConf(path string) (*TTSClient, error) {
 // CreateCertSecret ..
 func (c *TTSClient) CreateCertSecret(id string, entries []ProxyEntries, kubeClientset *kubernetes.Clientset) (*v1.Secret, error) {
 	// if secret exists remove it
-	_, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("certs-secret", metav1.GetOptions{})
+	_, err := kubeClientset.CoreV1().Secrets(c.Namespace).Get("certs-secret", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return &v1.Secret{}, fmt.Errorf("Unexpected problem checking of secret existance: %s", err)
 	} else if err == nil {
 		log.Print("Cert secret already exists, removing it before proceeding")
-		err = kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Delete("certs-secret", &metav1.DeleteOptions{})
+		err = kubeClientset.CoreV1().Secrets(c.Namespace).Delete("certs-secret", &metav1.DeleteOptions{})
 		if err != nil {
 			return &v1.Secret{}, fmt.Errorf("Failed to delete previous secret: %s", err)
 		}
@@ -60,7 +61,7 @@ func (c *TTSClient) CreateCertSecret(id string, entries []ProxyEntries, kubeClie
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "certs-secret",
-			Namespace: v1.NamespaceDefault,
+			Namespace: c.Namespace,
 		},
 		Data: map[string][]byte{
 			//"watts_cert.key": []byte(refreshToken),
@@ -75,7 +76,7 @@ func (c *TTSClient) CreateCertSecret(id string, entries []ProxyEntries, kubeClie
 
 	secret.Data["id"] = []byte(id)
 
-	certSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Create(secret)
+	certSecret, err := kubeClientset.CoreV1().Secrets(c.Namespace).Create(secret)
 	if err != nil {
 		return &v1.Secret{}, fmt.Errorf("Failed to create cert secret: %s", err)
 	}
@@ -87,12 +88,12 @@ func (c *TTSClient) CreateCertSecret(id string, entries []ProxyEntries, kubeClie
 func (c *TTSClient) CreateSecret(refreshToken string, kubeClientset *kubernetes.Clientset) (*v1.Secret, error) {
 
 	// if secret exists remove it
-	_, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Get("refresh-token", metav1.GetOptions{})
+	_, err := kubeClientset.CoreV1().Secrets(c.Namespace).Get("refresh-token", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return &v1.Secret{}, fmt.Errorf("Unexpected problem checking of secret existance: %s", err)
 	} else if err == nil {
 		log.Print("Token secret already exists, removing it before proceeding")
-		err = kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Delete("refresh-token", &metav1.DeleteOptions{})
+		err = kubeClientset.CoreV1().Secrets(c.Namespace).Delete("refresh-token", &metav1.DeleteOptions{})
 		if err != nil {
 			return &v1.Secret{}, fmt.Errorf("Failed to delete previous secret: %s", err)
 		}
@@ -101,7 +102,7 @@ func (c *TTSClient) CreateSecret(refreshToken string, kubeClientset *kubernetes.
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "refresh-token",
-			Namespace: v1.NamespaceDefault,
+			Namespace: c.Namespace,
 		},
 		Data: map[string][]byte{
 			"RefreshToken": []byte(refreshToken),
@@ -109,7 +110,7 @@ func (c *TTSClient) CreateSecret(refreshToken string, kubeClientset *kubernetes.
 		},
 	}
 
-	tokenSecret, err := kubeClientset.CoreV1().Secrets(v1.NamespaceDefault).Create(secret)
+	tokenSecret, err := kubeClientset.CoreV1().Secrets(c.Namespace).Create(secret)
 	if err != nil {
 		return &v1.Secret{}, fmt.Errorf("Failed to create token secret: %s", err)
 	}
